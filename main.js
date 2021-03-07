@@ -3,9 +3,12 @@ var codeOutElement = document.getElementById("codeOut");
 var waypoints = [];
 var mode = 0;//curve (1) or line (0)
 var LANG = 'java';
+var info;
 var TIMER = 'm_timer', DRIVER = 'm_robotDrive', POWER = 1,
- SPEED=1, TURNSPEED=10, INITANGLE = 0, ROBOTWIDTH=3.5;
+ SPEED=1, TURNSPEED=10, INITANGLE = 0, ROBOTWIDTH=3.5,
+ PIXTOFEET=24.5333333333333334,PATHONLY=false;
 function loaded(){
+  info = document.getElementById('info');
   canvas = document.getElementById("canvas");
   canvas.addEventListener("mousemove",e=>{
     var rect = e.target.getBoundingClientRect();
@@ -27,6 +30,7 @@ function loaded(){
   ctx = canvas.getContext("2d");
   changeBackgroundImage("GLD");
   setInterval(()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(img, 0, 0);
     ctx.beginPath();
     let x=0,y=0,w=0,h=0;
@@ -70,6 +74,8 @@ function loaded(){
           if(!done){
             p2 = {x:m.x,y:m.y};
             drawit = true;
+            let dst = Math.dist(p1.x,p1.y,p2.x,p2.y);
+            info.innerText = `Linear distance: ${dst.toFixed(3)}px (~${pixToFt(dst).toFixed(1)}')`;
           }
         }
         else{
@@ -91,20 +97,22 @@ function loaded(){
           }
         }
     }
-    ctx.lineWidth = ftToPix(ROBOTWIDTH);//radius
-    ctx.strokeStyle="rgba(255, 0, 0,0.1)";
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.stroke();
     ctx.lineWidth = 5;
     ctx.strokeStyle="#000";
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.stroke();
-    if(waypoints.length > 0) for(let i = 0; i < waypoints.length; i++){
-      ctx.beginPath();
-      ctx.ellipse(waypoints[i].x,waypoints[i].y,8,8, 0, 0, Math.PI * 2, false);
-      ctx.fill();
+    if(!PATHONLY){
+      ctx.lineWidth = ftToPix(ROBOTWIDTH);//radius
+      ctx.strokeStyle="rgba(255, 0, 0,0.1)";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+      if(waypoints.length > 0) for(let i = 0; i < waypoints.length; i++){
+        ctx.beginPath();
+        ctx.ellipse(waypoints[i].x,waypoints[i].y,8,8, 0, 0, Math.PI * 2, false);
+        ctx.fill();
+      }
     }
   },1000/20);
 }
@@ -127,10 +135,10 @@ Math.dist=function(x1,y1,x2,y2){
 }
 
 function ftToPix(ft){
-  return 24.5333333333333334*ft; //height of arena in pixels / 15ft
+  return PIXTOFEET*ft; //height of arena in pixels / 15ft
 }
 function pixToFt(pix){
-  return pix/24.5333333333333334; //height of arena in pixels / 15ft
+  return pix/PIXTOFEET; //height of arena in pixels / 15ft
 }
 function getSet(s){
   return parseFloat(document.getElementById(s).value);
@@ -338,3 +346,13 @@ function endCode(){
   return code;
 }
 function fmtMSS(s){return(s-(s%=60))/60+(9<s?':':':0')+s}
+
+document.getElementById('bkimage').addEventListener('change', (event) => {
+  const strDataURI = window.URL.createObjectURL(event.target.files[0]);
+  var image = new Image;
+  image.src = strDataURI;
+  img = image;
+  clearDrawing();
+  ctx.drawImage(img, 0, 0);
+  done=false;
+});

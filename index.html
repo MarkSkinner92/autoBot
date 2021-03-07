@@ -12,12 +12,17 @@
       }
       .textarea{
         float:right;
-        width:calc(100% - 910px);
-        height:500px;
-        margin-top: 75px;
+        width:calc(100% - 920px);
+        height:600px;
       }
       .input{
         width:50px;
+      }
+      textarea,canvas,div{
+        border:solid 3px;
+      }
+      canvas{
+        margin-bottom: 10px;
       }
     </style>
   </head>
@@ -28,9 +33,11 @@
     <img class="hidden" id="GLD" src="./images/General Layout Diagram.jpg">
     <img class="hidden" id="LSCP" src="./images/Light Speed Circuit Path.jpg">
     <img class="hidden" id="SP" src="./images/Slalom Path.jpg">
-    <h1 style='background: darkkhaki;'>Autonomous Robot Sketcher ⇉ Fort Saskatchewan High School</h1>
+    <h1 style='background: #ffe477;'>Autonomous Robot Sketcher ⇉ Fort Saskatchewan High School</h1>
     <canvas oncontextmenu="return false" id="canvas" width="900" height="600"></canvas>
     <textarea readonly spellcheck="false" id='codeOut' class="textarea"></textarea>
+    <label class="inline">Import Image</label>
+    <input class="inline"type="file"id="bkimage" name="backgroundImage"accept="image/png, image/jpeg">
     <select class="inline" onchange="changeBackgroundImage(this.value);">
       <option value="GLD">General Layout Diagram</option>
       <option value="BRP">Barrel Racing Path</option>
@@ -41,12 +48,20 @@
     <button onclick="clearDrawing();">Clear Sketch</button>
     <button onclick="copyCode();">Copy Code</button>
     <button onclick="toggleCurveMode();">Toggle Curve Mode (w)</button>
+    <input type='checkbox' onchange="PATHONLY=this.checked;">Display Path Only |</input>
+    <label class='input'>Code Language:</label>
+    <select id='lang' onchange="LANG=this.value;recalculateCode();">
+      <option value='java'>Java</option>
+      <option value='python'>Python</option>
+    </select>
+    <label class="inline">Info:</label>
+    <p class="inline" id='info'>current image is 900x600px</p>
     <script src="main.js" charset="utf-8"></script>
-    <div style='background: darkkhaki; margin-bottom:30px; padding-left:20px; padding-bottom:10px;'>
-      <h1> Settings </h1>
-        <label>Average Speed (ft/s):</label>
+    <div style='background: #8ce789; margin-top:15px; margin-bottom:30px; padding-left:20px; padding-bottom:10px;'>
+      <h1 style='margin:10px'> Settings </h1>
+        <label>Average Speed @ Full Power (ft/s):</label>
         <input oninput="SPEED=parseFloat(this.value);recalculateCode();" class='input'type="text" id="speed" name="speed" value='1'>
-        <label>Average Turn Speed (&deg/s):</label>
+        <label>Average Sharp Turn Speed @ Full Power (&deg/s):</label>
         <input oninput="TURNSPEED=parseFloat(this.value);recalculateCode();" class='input'type="text" id="rotspeed" name="speed" value='10'>
         <label class='input'>Initial Orientation:</label>
         <select id='orientation' onchange="INITANGLE=parseFloat(this.value);recalculateCode();">
@@ -55,7 +70,7 @@
           <option value='180'>180&deg⇇</option>
           <option value='270'>270&deg⇊</option>
         </select>
-        <label>Robot Width (ft):</label>
+        <label>Left Tire Center to Right Tire Center (ft):</label>
         <input oninput="ROBOTWIDTH=parseFloat(this.value);recalculateCode();"class='input'type="text" id="robotwidth" value='3.5'>
         <label>Distance from Bumper to Center of Rotation (ft):</label>
         <input class='input'type="text" id="robotlength" value='2.5'>
@@ -63,11 +78,8 @@
         <input oninput="TIMER=this.value;recalculateCode();" type="text" value='m_timer'>
         <label>DifferentialDrive Variable Name:</label>
         <input oninput="DRIVER=this.value;recalculateCode();" type="text" value='m_robotDrive'>
-        <label class='input'>Code Language:</label>
-        <select id='lang' onchange="LANG=this.value;recalculateCode();">
-          <option value='java'>Java</option>
-          <option value='python'>Python</option>
-        </select>
+        <label>Pixels/Feet:</label>
+        <input oninput="PIXTOFEET=parseFloat(this.value);recalculateCode();" type="text" value='24.5333333333333334'>
     </div>
     <p style='float:right'>Created by Mark Skinner, March 4, 2021: <a href='mailto:markhskinner@gmail.com'>markhskinner@gmail.com</a></p>
   </body>
