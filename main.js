@@ -58,6 +58,7 @@ function loaded(){
     ctx.lineJoin = "square";
     ctx.stroke();
     ctx.beginPath();
+    let p1,p2;
     let lastAngle = INITANGLE==0?0:(INITANGLE==90?Math.PI/2:(INITANGLE==180?Math.PI:-Math.PI/2));
     if(waypoints.length > 0) for(let i = 0; i < waypoints.length; i++){
         // if(i==0){
@@ -67,8 +68,8 @@ function loaded(){
         //   if(!done) ctx.lineTo(m.x, m.y);
         // }
         // else ctx.lineTo(waypoints[i+1].x, waypoints[i+1].y);
-        let p1 = {x:waypoints[i].x,y:waypoints[i].y};
-        let p2 = {x:m.x,y:m.y};
+        p1 = {x:waypoints[i].x,y:waypoints[i].y};
+        p2 = {x:m.x,y:m.y};
         let drawit = false;
         if(i == waypoints.length-1){
           if(!done){
@@ -102,6 +103,7 @@ function loaded(){
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.stroke();
+
     if(!PATHONLY){
       ctx.lineWidth = ftToPix(ROBOTWIDTH);//radius
       ctx.strokeStyle="rgba(255, 0, 0,0.1)";
@@ -113,6 +115,20 @@ function loaded(){
         ctx.ellipse(waypoints[i].x,waypoints[i].y,8,8, 0, 0, Math.PI * 2, false);
         ctx.fill();
       }
+    }
+
+    if(!done && mode == 1){
+      ctx.lineWidth = 5;
+      ctx.strokeStyle="#AAA";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(p2.x,p2.y);
+      console.log(lastAngle);
+      ctx.lineTo(p2.x+Math.cos(lastAngle)*2000,p2.y-Math.sin(lastAngle)*2000);
+      ctx.setLineDash([5, 15]);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
   },1000/20);
 }
