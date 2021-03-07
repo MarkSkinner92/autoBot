@@ -1,7 +1,10 @@
 var canvas,ctx,done=false,img,m={x:0,y:0};//m is mouse
 var codeOutElement = document.getElementById("codeOut");
 var waypoints = [];
-var TIMER = 'm_timer', DRIVER = 'm_robotDrive', POWER = 1, SPEED=1, TURNSPEED=10, INITANGLE = 0;
+var mode = 0;//curve (1) or line (0)
+var LANG = 'java';
+var TIMER = 'm_timer', DRIVER = 'm_robotDrive', POWER = 1,
+ SPEED=1, TURNSPEED=10, INITANGLE = 0, ROBOTWIDTH=3.5;
 function loaded(){
   canvas = document.getElementById("canvas");
   canvas.addEventListener("mousemove",e=>{
@@ -14,7 +17,7 @@ function loaded(){
   canvas.addEventListener("mousedown",e=>{
     let wp = waypoints[waypoints.length-1];
     if(waypoints.length == 0 || Math.dist(m.x,m.y,wp.x,wp.y) > 20){
-      waypoints.push({x:m.x,y:m.y});
+      waypoints.push({x:m.x,y:m.y,type:mode});
       recalculateCode();
     }
     else done=true;
@@ -28,11 +31,11 @@ function loaded(){
     ctx.beginPath();
     let x=0,y=0,w=0,h=0;
     if(getSet('orientation') == 90 || getSet('orientation') == 270){
-      w=ftToPix(getSet('robotwidth'));
+      w=ftToPix(ROBOTWIDTH);
       h=ftToPix(getSet('robotlength')*2);
     }
     else{
-      h=ftToPix(getSet('robotwidth'));
+      h=ftToPix(ROBOTWIDTH);
       w=ftToPix(getSet('robotlength')*2);
     }
     if(waypoints.length == 0){
@@ -51,16 +54,44 @@ function loaded(){
     ctx.lineJoin = "square";
     ctx.stroke();
     ctx.beginPath();
+    let lastAngle = INITANGLE==0?0:(INITANGLE==90?Math.PI/2:(INITANGLE==180?Math.PI:-Math.PI/2));
     if(waypoints.length > 0) for(let i = 0; i < waypoints.length; i++){
-        if(i==0){
-          ctx.moveTo(waypoints[i].x, waypoints[i].y);
-        }
+        // if(i==0){
+        //   ctx.moveTo(waypoints[i].x, waypoints[i].y);
+        // }
+        // if(i == waypoints.length-1){
+        //   if(!done) ctx.lineTo(m.x, m.y);
+        // }
+        // else ctx.lineTo(waypoints[i+1].x, waypoints[i+1].y);
+        let p1 = {x:waypoints[i].x,y:waypoints[i].y};
+        let p2 = {x:m.x,y:m.y};
+        let drawit = false;
         if(i == waypoints.length-1){
-          if(!done) ctx.lineTo(m.x, m.y);
+          if(!done){
+            p2 = {x:m.x,y:m.y};
+            drawit = true;
+          }
         }
-        else ctx.lineTo(waypoints[i+1].x, waypoints[i+1].y);
+        else{
+          p2 = {x:waypoints[i+1].x,y:waypoints[i+1].y};
+          drawit = true;
+        }
+
+        if(drawit){
+          let type = waypoints[i].type;
+          if(i == waypoints.length-1) type = mode;
+
+          if(type == 1){
+            let arc = drawArc(p1.x,p1.y,p2.x,p2.y,lastAngle);
+            lastAngle = arc.endAngle;
+          }else if(type == 0){
+            ctx.moveTo(p1.x,p1.y);
+            ctx.lineTo(p2.x,p2.y);
+            lastAngle = getPangle(getAngle2(p2,p1)*-1+Math.PI);
+          }
+        }
     }
-    ctx.lineWidth = ftToPix(parseFloat(document.getElementById('robotwidth').value));//radius
+    ctx.lineWidth = ftToPix(ROBOTWIDTH);//radius
     ctx.strokeStyle="rgba(255, 0, 0,0.1)";
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -116,38 +147,194 @@ function copyCode(){
   document.execCommand("copy");
 }
 
+function drawArc(a,b, c,d, _theta){
+  let theta = _theta*-1+Math.PI/2+0.0000001;
+  let center = {x:0,y:0};
+  let tan = Math.tan(theta);
+  let acbd = (a-c)/(b-d);
+  center.x = (acbd*a+(acbd*(c-a)-(b-d))/2+tan*a)/(tan+acbd);
+  center.y = tan*(center.x-a)+b;
+  let rad = Math.dist(a,b,center.x,center.y);
+  let angleA = getAngle2(center,{x:a,y:b});
+  let angleB = getAngle2(center,{x:c,y:d});
+  let ls = isLeft({x:a,y:b},{x:c,y:d},center);
 
-//ENCODER
-function recalculateCode(){
-  if(waypoints.length > 1){
-    var code = '';
-    var runningTime = 0;
-    var angle = INITANGLE;
-    var codeOut = codeOutElement;
-    for(let i = 0; i < waypoints.length; i++){
-      if(i > 0){
-        let segAngle = getAngleChange(angle,getAngle(waypoints[i-1],waypoints[i]));
-        angle += segAngle;
-        let time = Math.abs(segAngle)/TURNSPEED;
-        runningTime += time;
-        code += constructIf(i==1?'':'else ',runningTime,POWER*segAngle>0?-1:1,POWER*segAngle>0?1:-1,` // turn ${segAngle.toFixed(1)}&deg`);
-        let dist = pixToFt(Math.dist(waypoints[i-1].x,waypoints[i-1].y,waypoints[i].x,waypoints[i].y));
-        time = dist/SPEED;
-        runningTime += time;
-        code += constructIf('else ',runningTime,POWER,POWER,` // move ${dist.toFixed(1)}\'`);
-      }
+  let leftside = Math.sign(getAngleChange2(theta,angleB)*180/Math.PI)==1?ls:!ls;
+  let tc = getAngleChange2(theta,angleB);
+  // console.log(tc*180/Math.PI);
+  let circ = 0;
+  if(leftside){
+  if(tc < 0){
+    circ = tc*-1;
+  }else{
+    circ = Math.PI*2 - tc;
+  }
+  }else{
+      circ = Math.PI+tc;
+  }
+  ctx.arc(center.x,center.y,rad,angleA,angleB,leftside);
+  return {circ:circ,radius:rad,side: leftside, center:center,endAngle:getPangle(angleB+Math.PI/2+(leftside?Math.PI:0))*-1};
+}
+//all radians
+function getAngle2(a,b){
+  return Math.atan2(b.y-a.y,b.x-a.x);
+}
+function getAngleChange2(_i,_j){
+  let i = _i*180/Math.PI;
+  let j = _j*180/Math.PI;
+  var diff = ( j - i + 180 ) % 360 - 180;
+  return (diff < -180 ? diff + 360 : diff)*Math.PI/180;
+}
+function getPangle(arad){
+  adeg = arad*180/Math.PI;
+  a = (Math.abs(adeg)%360)*Math.sign(adeg);
+  if(Math.abs(a) <= 180) return a*Math.PI/180;
+  else{
+    if(a > 180){
+      a -= 360;
     }
-    code += `else{
-  ${DRIVER}.stopMotor(); // stop robot
-}`
-    const stats = `//Total Running Time: ${fmtMSS(~~runningTime)}\n\n`;
-    codeOut.innerHTML = stats+code;
+    else if(a < -180){
+      a += 360;
+    }
+    return a*Math.PI/180;
   }
 }
-function constructIf(Else,i,x,y,c){
-  return(
-`${Else}if(${TIMER}.get() < ${i.toFixed(5)}){${c}
+function isLeft(a,b,c){
+     return ((b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x)) > 0;
+}
+
+function setMode(m){
+  mode = m;
+  waypoints[waypoints.length-1].type = m;
+}
+function toggleCurveMode(){
+  if(mode == 0){
+    setMode(1);
+  }else{
+    setMode(0);
+  }
+}
+window.addEventListener('keydown',e=>{
+  if(document.activeElement.tagName != 'INPUT'){
+    if(e.key == 'w') toggleCurveMode();
+    if(e.keyCode == 8 || e.keyCode == 46){
+      waypoints.pop();
+      mode = waypoints[waypoints.length-1].type;
+      recalculateCode();
+    }
+  }
+});
+//ENCODER
+let TIME = 0;
+let ELSENEEDED = false;
+let INSTRUCTIONS = 0;
+function recalculateCode(){
+  TIME = 0;
+  ELSENEEDED = false;
+  INSTRUCTIONS = 0;
+  let code = '';
+  let lastAngle = INITANGLE==0?0:(INITANGLE==90?Math.PI/2:(INITANGLE==180?Math.PI:-Math.PI/2));
+  if(waypoints.length > 0) for(let i = 0; i < waypoints.length-1; i++){
+      let p1 = {x:waypoints[i].x,y:waypoints[i].y};
+      let p2 = {x:waypoints[i+1].x,y:waypoints[i+1].y};
+      let type = waypoints[i].type;
+      let oldAngle = lastAngle;
+      if(type == 1){
+        let arc = drawArc(p1.x,p1.y,p2.x,p2.y,lastAngle);
+        lastAngle = arc.endAngle;
+        code += generateJavaArc(arc);
+      }else if(type == 0){
+        ctx.moveTo(p1.x,p1.y);
+        ctx.lineTo(p2.x,p2.y);
+        lastAngle = getPangle(getAngle2(p2,p1)*-1+Math.PI);
+        code += generateJavaTurn(getPangle(getAngleChange(oldAngle,lastAngle))*180/Math.PI);
+        code += generateJavaLine(pixToFt(Math.dist(p1.x,p1.y,p2.x,p2.y)));
+      }
+  }
+  codeOut.innerHTML = beginCode() + code + endCode();
+}
+
+function generateJavaArc(arc){
+  INSTRUCTIONS++;
+  console.log(arc);
+  let timeTaken = pixToFt((arc.radius + ftToPix(ROBOTWIDTH)/2)*arc.circ)/SPEED;
+  TIME += timeTaken;
+  let sp = (arc.radius - ftToPix(ROBOTWIDTH)/2)/(arc.radius + ftToPix(ROBOTWIDTH)/2);
+  let x = arc.side?(sp).toFixed(8):1;
+  let y = arc.side?1:(sp).toFixed(8);
+  let code = '';
+  if(LANG == 'java'){
+  code = `${ELSENEEDED?'else ':''}if(${TIMER}.get() < ${TIME.toFixed(8)}){ // curve radius ${pixToFt(arc.radius).toFixed(1)}' for ${timeTaken.toFixed(1)}s
   ${DRIVER}.tankDrive(${x},${y});
-}\n`);
+}
+`;
+} else if(LANG = 'python'){
+  code = `${ELSENEEDED?'elif ':'if'}(${TIMER}.get() < ${TIME.toFixed(8)}): # curve radius ${pixToFt(arc.radius).toFixed(1)}' for ${timeTaken.toFixed(1)}s
+  ${DRIVER}.tankDrive(${x},${y})\n
+`;
+}
+ELSENEEDED = true;
+  return code;
+}
+function generateJavaTurn(angledeg){
+  INSTRUCTIONS++;
+  let timeTaken = Math.abs(angledeg)/TURNSPEED;
+  TIME += timeTaken;
+  let x = Math.sign(angledeg)*-1;
+  let y = Math.sign(angledeg);
+  let code = '';
+  if(LANG == 'java'){
+  code = `${ELSENEEDED?'else ':''}if(${TIMER}.get() < ${TIME.toFixed(5)}){ // turn ${angledeg.toFixed(2)}&deg (${timeTaken.toFixed(1)}s)
+  ${DRIVER}.tankDrive(${x},${y});
+}
+`;
+}else if(LANG == 'python'){
+code = `${ELSENEEDED?'elif ':'if'}(${TIMER}.get() < ${TIME.toFixed(5)}): # turn ${angledeg.toFixed(2)}&deg (${timeTaken.toFixed(1)}s)
+  ${DRIVER}.tankDrive(${x},${y})\n
+`;
+}
+ELSENEEDED = true;
+  return code;
+}
+function generateJavaLine(ft){
+  INSTRUCTIONS++;
+  let timeTaken = ft/SPEED;
+  TIME += timeTaken;
+  let x = 1;
+  let y = 1;
+  let code = '';
+  if(LANG == 'java'){
+  code = `${ELSENEEDED?'else ':''}if(${TIMER}.get() < ${TIME.toFixed(5)}){ // move ${ft.toFixed(2)}' (${timeTaken.toFixed(1)}s)
+  ${DRIVER}.tankDrive(${x},${y});
+}
+`;
+}else if(LANG == 'python'){
+  code = `${ELSENEEDED?'elif ':'if'}(${TIMER}.get() < ${TIME.toFixed(5)}): # move ${ft.toFixed(2)}' (${timeTaken.toFixed(1)}s)
+  ${DRIVER}.tankDrive(${x},${y})\n
+`;
+}
+ELSENEEDED = true;
+  return code;
+}
+function beginCode(){
+  let comment = LANG=='python'?'#':'//';
+  return(`${comment}Total running time: ${fmtMSS(~~TIME)}s
+${comment}Total instructions: ${INSTRUCTIONS}\n\n`);
+}
+function endCode(){
+  let date = new Date().toDateString();
+  if(waypoints.length < 2) return '';
+  let code = ''
+  if(LANG == 'java'){
+    code = `else{
+  ${DRIVER}.stopMotor();
+}
+//sequence generated by Mark Skinner on ${date}`;
+}else{
+  code = `else:
+  ${DRIVER}.stopMotor()
+#sequence generated by Mark Skinner on ${date}`;
+}
+  return code;
 }
 function fmtMSS(s){return(s-(s%=60))/60+(9<s?':':':0')+s}

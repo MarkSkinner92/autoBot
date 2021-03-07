@@ -28,9 +28,9 @@
     <img class="hidden" id="GLD" src="./images/General Layout Diagram.jpg">
     <img class="hidden" id="LSCP" src="./images/Light Speed Circuit Path.jpg">
     <img class="hidden" id="SP" src="./images/Slalom Path.jpg">
-    <h1 style='background: darkkhaki;'>Autonomous Robot Sketcher</h1>
-    <canvas id="canvas" width="900" height="600"></canvas>
-    <textarea spellcheck="false" id='codeOut' class="textarea"></textarea>
+    <h1 style='background: darkkhaki;'>Autonomous Robot Sketcher ⇉ Fort Saskatchewan High School</h1>
+    <canvas oncontextmenu="return false" id="canvas" width="900" height="600"></canvas>
+    <textarea readonly spellcheck="false" id='codeOut' class="textarea"></textarea>
     <select class="inline" onchange="changeBackgroundImage(this.value);">
       <option value="GLD">General Layout Diagram</option>
       <option value="BRP">Barrel Racing Path</option>
@@ -39,7 +39,8 @@
       <option value="SP">Slalom Path</option>
     </select>
     <button onclick="clearDrawing();">Clear Sketch</button>
-    <button onclick="copyCode();">Copy Java Code</button>
+    <button onclick="copyCode();">Copy Code</button>
+    <button onclick="toggleCurveMode();">Toggle Curve Mode (w)</button>
     <script src="main.js" charset="utf-8"></script>
     <div style='background: darkkhaki; margin-bottom:30px; padding-left:20px; padding-bottom:10px;'>
       <h1> Settings </h1>
@@ -55,13 +56,18 @@
           <option value='270'>270&deg⇊</option>
         </select>
         <label>Robot Width (ft):</label>
-        <input class='input'type="text" id="robotwidth" value='3.5'>
+        <input oninput="ROBOTWIDTH=parseFloat(this.value);recalculateCode();"class='input'type="text" id="robotwidth" value='3.5'>
         <label>Distance from Bumper to Center of Rotation (ft):</label>
         <input class='input'type="text" id="robotlength" value='2.5'>
         <label>Timer Variable Name:</label>
         <input oninput="TIMER=this.value;recalculateCode();" type="text" value='m_timer'>
         <label>DifferentialDrive Variable Name:</label>
         <input oninput="DRIVER=this.value;recalculateCode();" type="text" value='m_robotDrive'>
+        <label class='input'>Code Language:</label>
+        <select id='lang' onchange="LANG=this.value;recalculateCode();">
+          <option value='java'>Java</option>
+          <option value='python'>Python</option>
+        </select>
     </div>
     <p style='float:right'>Created by Mark Skinner, March 4, 2021: <a href='mailto:markhskinner@gmail.com'>markhskinner@gmail.com</a></p>
   </body>
