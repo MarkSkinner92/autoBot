@@ -51,7 +51,7 @@
     <input type='checkbox' onchange="PATHONLY=this.checked;">Display Path Only |</input>
     <label class='input'>Code Language:</label>
     <select id='lang' onchange="LANG=this.value;recalculateCode();">
-      <option value='java'>Java</option>
+      <option value='java'>Java/C++</option>
       <option value='python'>Python</option>
     </select>
     <label class="inline">Info:</label>
@@ -75,9 +75,9 @@
         <label>Distance from Bumper to Center of Rotation (ft):</label>
         <input class='input'type="text" id="robotlength" value='2.5'>
         <label>Timer Variable Name:</label>
-        <input oninput="TIMER=this.value;recalculateCode();" type="text" value='m_timer'>
+        <input oninput="TIMER=this.value;recalculateCode();" type="text" value='m_timer.get()'>
         <label>DifferentialDrive Variable Name:</label>
-        <input oninput="DRIVER=this.value;recalculateCode();" type="text" value='m_robotDrive'>
+        <input oninput="DRIVER=this.value;recalculateCode();" type="text" value='m_robotDrive.tankDrive'>
         <label>Pixels/Feet:</label>
         <input oninput="PIXTOFEET=parseFloat(this.value);recalculateCode();" type="text" value='24.5333333333333334'>
     </div>
